@@ -1,17 +1,19 @@
-﻿# Operating System
+# Operating System
 .DS_Store
 Thumbs.db
 ehthumbs.db
 
-# IDEs
+# IDEs & Editors
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 
-# Logs & temp
+# Logs & Temp
 *.log
 *.tmp
 *.bak
+*.swp
 
-# Cache files
-cache/*
-!cache/.gitkeep
+# Dependencies
+# Hinweis: vendor/plugin-update-checker/ bleibt bewusst versioniert für automatische Updates!
