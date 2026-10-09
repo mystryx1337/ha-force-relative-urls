@@ -238,14 +238,25 @@ class UrlConverter {
             $hosts[] = $req_host;
         }
 
-        // 3. Standardmäßige Intranet-Hostnamen des Landkreises
-        $hosts[] = 'intranet.hef-rof.de';
-        $hosts[] = 's-app75.lkhefrof.local';
+        // 3. Optionale zusätzliche Hostnamen via Konstante (z. B. in wp-config.php)
+        if ( defined( 'HA_FRU_ADDITIONAL_HOSTS' ) ) {
+            $extra = constant( 'HA_FRU_ADDITIONAL_HOSTS' );
+            if ( is_string( $extra ) ) {
+                $extra = array_map( 'trim', explode( ',', $extra ) );
+            }
+            if ( is_array( $extra ) ) {
+                foreach ( $extra as $add_host ) {
+                    if ( ! empty( $add_host ) ) {
+                        $hosts[] = strtolower( trim( (string) $add_host ) );
+                    }
+                }
+            }
+        }
 
         $hosts = array_values( array_unique( array_filter( $hosts ) ) );
 
         /**
-         * Ermöglicht das Filtern oder Hinzufügen weiterer interner Hostnamen.
+         * Ermöglicht das Filtern oder dynamische Ergänzen weiterer interner Hostnamen.
          *
          * @param array $hosts Liste der Hostnamen.
          */

@@ -5,18 +5,18 @@
 > **Lizenz:** GPL-3.0  
 > **Mindestvoraussetzungen:** WordPress 6.0+ | PHP 8.1+  
 
-**HA Force Relative URLs** erzwingt saubere, root-relative URLs (`/wp-content/...`, `/mein-beitrag/`) für Medien, Scripts, Styles, Astra-Theme-Assets und Beitragslinks im WordPress-Intranet.
+**HA Force Relative URLs** erzwingt saubere, root-relative URLs (`/wp-content/...`, `/mein-beitrag/`) für Medien, Scripts, Styles, Astra-Theme-Assets und Beitragslinks in Multi-Port- und Multidomain-WordPress-Installationen.
 
 ---
 
 ## 🎯 Einsatzzweck & Hintergrund
 
-In hybriden Netzwerkarchitekturen (z. B. Kommunal- und Behördenintranets) wird WordPress häufig über unterschiedliche URLs oder Ports angesteuert:
-* **Intern:** `https://intranet.hef-rof.de` (Port 443)
-* **Extern / Niederlassungen:** `https://intranet.hef-rof.de:8443` (Port 8443)
-* **Staging / Migration:** `https://s-app75.lkhefrof.local`
+In vielen Unternehmens-, Behörden- und Intranet-Netzwerkarchitekturen wird WordPress über unterschiedliche Hostnamen oder Ports angesteuert:
+* **Intern / Standard:** `https://intranet.example.org` (Port 443)
+* **Extern / Niederlassungen:** `https://intranet.example.org:8443` (Port 8443)
+* **Staging / Testumgebungen:** `https://staging.local`
 
-WordPress und moderne Themes (wie **Astra**) speichern oder generieren standardmäßig absolute URLs mit festem Hostnamen und Port. Greift ein Benutzer über Port `8443` zu, blockiert der Browser das Laden von Styles, Skripten und Bildern, wenn diese mit Port `443` hartcodiert sind.
+WordPress und moderne Themes (wie **Astra**) generieren standardmäßig absolute URLs mit fest hinterlegtem Hostnamen und Port. Greift ein Client über einen alternativen Port (z. B. `8443`) zu, blockiert der Browser das Laden von Styles, Skripten und Medien, wenn diese mit Port `443` ausgeliefert werden.
 
 Dieses Plugin wandelt alle internen URLs zur Laufzeit in **root-relative Pfade** um. Dadurch nutzt der Browser des Clients automatisch exakt das Protokoll, den Hostnamen und den Port des aktuellen Seitenaufrufs.
 
@@ -25,16 +25,16 @@ Dieses Plugin wandelt alle internen URLs zur Laufzeit in **root-relative Pfade**
 ## ✨ Features & Architektur (v2.0.0)
 
 * **100 % WordPress-Core Hooks:** Keine synchronen cURL-Aufrufe, keine PHP-Worker-Blockaden und kein clientseitiges DOM-Scraping per JavaScript.
-* **Astra Theme & CSS-Kompatibilität:** Filtert sowohl Enqueued Scripts/Styles (`style_loader_src`, `script_loader_src`) als auch Astra-spezifische dynamische Inline-Styles (`astra_dynamic_theme_css`).
+* **Astra Theme & CSS-Kompatibilität:** Filtert Enqueued Scripts/Styles (`style_loader_src`, `script_loader_src`) sowie Astra-spezifische dynamische Inline-Styles (`astra_dynamic_theme_css`).
 * **Medien & Responsive Images:** Wandelt Bild-URLs, Zwischengrößen und `srcset`-Attribute atomar um.
-* **Beitrags- & Seitenlinks:** Konvertiert Links in Beiträgen (`the_content`), Auszügen (`the_excerpt`), Menüs und Permalinks.
+* **Beitrags- & Seitenlinks:** Konvertiert Links in Beiträgen (`the_content`), Auszügen (`the_excerpt`), Widgets und Permalinks.
 * **Schutz kritischer Endpunkte:**
   * WP REST API (`/wp-json/`) bleibt geschützt (kein Bruch des Gutenberg-Block-Editors oder WP-Crons).
   * RSS- und Atom-Feeds behalten absolute URLs (gemäß RFC-Spezifikation).
   * XML-RPC und Sitemaps werden nicht verändert.
-* **HA-Standards-Konformität:**
+* **Standards-Konformität:**
   * Namespace `ha\ForceRelativeUrls` mit modernem PSR-4 Autoloading unter `src/`.
-  * Integrierter **Plugin Update Checker (PUC v5.7)** für automatische Updates direkt aus privaten GitHub-Repositories.
+  * Integrierter **Plugin Update Checker (PUC v5.7)** für automatische Updates direkt aus GitHub-Repositories.
   * Sichere Deinstallationsroutine `uninstall.php` mit Daten-Schutzwall.
 
 ---
@@ -56,14 +56,22 @@ ha-force-relative-urls/
 
 ---
 
-## ⚙️ Filter & Anpassungen
+## ⚙️ Filter & Konfiguration
 
-### 1. Eigene interne Hostnamen ergänzen
-Standardmäßig erkennt das Plugin die Hosts aus `home_url()`, `site_url()`, dem aktuellen `$_SERVER['HTTP_HOST']` sowie `intranet.hef-rof.de` und `s-app75.lkhefrof.local`. Zusätzliche Hostnamen können per Filter ergänzt werden:
+### 1. Zusätzliche interne Hostnamen ergänzen
+Standardmäßig erkennt das Plugin dynamisch die Hosts aus `home_url()`, `site_url()` und dem aktuellen `$_SERVER['HTTP_HOST']`.
+
+Zusätzliche Domains (z. B. historische Hostnamen aus Altdaten) können entweder per Konstante in der `wp-config.php`:
+
+```php
+define( 'HA_FRU_ADDITIONAL_HOSTS', [ 'alt-intranet.local', 'staging.local' ] );
+```
+
+oder flexibel per Filter im Child-Theme / Plugin ergänzt werden:
 
 ```php
 add_filter( 'ha_fru_internal_hosts', function( array $hosts ): array {
-    $hosts[] = 'mein-weiterer-host.local';
+    $hosts[] = 'alt-intranet.local';
     return $hosts;
 } );
 ```
@@ -79,7 +87,7 @@ add_filter( 'ha_fru_skip_request', function( bool $skip ): bool {
 ```
 
 ### 3. Automatische GitHub-Updates
-Für automatische Updates über private GitHub-Repositories wird in der `wp-config.php` der Token hinterlegt:
+Für automatische Updates über private GitHub-Repositories kann in der `wp-config.php` der Access-Token hinterlegt werden:
 
 ```php
 define( 'HA_GITHUB_UPDATE_TOKEN', 'github_pat_...' );
@@ -90,9 +98,8 @@ define( 'HA_GITHUB_UPDATE_TOKEN', 'github_pat_...' );
 ## 📝 Changelog
 
 ### 2.0.0 (Refactoring & Security-Härtung)
-* **Breaking Refactor:** Vollständige Neuentwicklung gemäß `ha-plugin-development-standards`.
-* **Security:** Beseitigung der SSRF- und Arbitrary-File-Write-Lücke (Entfernen von `ajax-proxy.php` und `cache/`).
+* **Breaking Refactor:** Vollständige Neuentwicklung gemäß modularer Plugin-Standards.
+* **Security:** Beseitigung ungeschützter Endpunkte und unsicherer Dateispeicherung im Plugin-Ordner.
 * **Performance:** Entfernen aller synchronen cURL-Downloads und Regex-Blockaden beim Seitenaufruf.
-* **Bugfix:** Beseitigung des fehlenden CSS-Stylings im Frontend durch native Filterung von `style_loader_src`.
-* **Multi-Port:** Volle Unterstützung für Zugriffe über Port 8443 und Staging-Domains (`s-app75.lkhefrof.local`).
+* **Multi-Port & Multidomain:** Volle Unterstützung für Zugriffe über wechselnde Ports (z. B. 443 vs. 8443) und Staging-Domains.
 * **Astra-Support:** Unterstützung dynamischer Astra-CSS-Regeln über `astra_dynamic_theme_css`.
